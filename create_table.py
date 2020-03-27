@@ -2,7 +2,7 @@
 import psycopg2
 
 import config
-from sql_table import mysql_table
+from sql_table import URLs_table,log_table
 
 '''
 Create_table.py looks for MySQL Config in config.py 
@@ -20,10 +20,13 @@ user = config.user
 passwrd = config.passwrd
 db = config.db
 
-create_table = mysql_table
+
 conn = psycopg2.connect(host=host, user=user, password=passwrd, database=db)
 
 cursor = conn.cursor()
-cursor.execute(create_table)
 
+cursor.execute(URLs_table)
+cursor.execute(log_table)
+
+conn.commit()
 conn.close()
