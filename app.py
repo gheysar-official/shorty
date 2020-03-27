@@ -46,14 +46,33 @@ db = config.db
 
 @app.route('/analytics/<short_url>')
 def analytics(short_url):
+    access = False
+    if not config.is_secure:
+        access = True
+    elif 'Auth' in request.headers:
+        if request.headers['Auth'] == config.SECRET_KEY:
+            access = True
+
+    if not access:
+        return redirect('http://basalam.com')
+
     info_fetch, counter_fetch, browser_fetch, platform_fetch, user_count = list_data(short_url)
     user_count = user_count if user_count else [0, 0]
-    return render_template("data.html", host=shorty_host, info=info_fetch, counter=counter_fetch, \
+    return render_template("data.html", host=shorty_host, info=info_fetch, counter=counter_fetch,
                            browser=browser_fetch, platform=platform_fetch, users=user_count)
 
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    access = False
+    if not config.is_secure:
+        access = True
+    elif 'Auth' in request.headers:
+        if request.headers['Auth'] == config.SECRET_KEY:
+            access = True
+    if not access:
+        return redirect('http://basalam.com')
+
     conn = psycopg2.connect(host=host, user=user, password=passwrd, database=db)
     cursor = conn.cursor()
 
@@ -71,14 +90,13 @@ def index():
         else:
             token_string = custom_suff
         if og_url != '':
-            if url_check(og_url) == True:
-
+            if url_check(og_url):
                 # Check's for existing suffix
                 check_row = "SELECT S_URL FROM WEB_URL WHERE S_URL = %s FOR UPDATE"
                 cursor.execute(check_row, (token_string,))
                 check_fetch = cursor.fetchone()
 
-                if (check_fetch is None):
+                if check_fetch is None:
                     insert_row = """
 						INSERT INTO WEB_URL(URL , S_URL , TAG) VALUES( %s, %s , %s)
 						"""
@@ -88,7 +106,8 @@ def index():
                     e = ''
                     return render_template('index.html', shorty_url=shorty_host + token_string, error=e)
                 else:
-                    e = "The Custom suffix already exists . Please use another suffix or leave it blank for random suffix."
+                    e = "The Custom suffix already exists." \
+                        " Please use another suffix or leave it blank for random suffix."
                     return render_template('index.html', table=result_all_fetch, host=shorty_host, error=e)
             else:
                 e = "URL entered doesn't seem valid , Enter a valid URL."
@@ -133,19 +152,20 @@ def reroute(short_url):
 
     try:
         new_url = cursor.fetchone()[0]
-        print(new_url)
         # Update Counters
         log_sql = 'insert into web_url_log(s_url, user_ip) values (%s, %s)'
-        counter_sql = "\
-				UPDATE {tn} SET COUNTER = COUNTER + {og_counter} , CHROME = CHROME + {og_chrome} , FIREFOX = FIREFOX+{og_firefox} ,\
-				SAFARI = SAFARI+{og_safari} , OTHER_BROWSER =OTHER_BROWSER+ {og_oth_brow} , ANDROID = ANDROID +{og_andr} , IOS = IOS +{og_ios},\
-				WINDOWS = WINDOWS+{og_windows} , LINUX = LINUX+{og_linux}  , MAC =MAC+ {og_mac} , OTHER_PLATFORM =OTHER_PLATFORM+ {og_plat_other} WHERE S_URL = %s;". \
-            format(tn="WEB_URL", og_counter=counter, og_chrome=browser_dict['chrome'],
-                   og_firefox=browser_dict['firefox'], \
-                   og_safari=browser_dict['safari'], og_oth_brow=browser_dict['other'],
-                   og_andr=platform_dict['android'], og_ios=platform_dict['iphone'], \
-                   og_windows=platform_dict['windows'], og_linux=platform_dict['linux'], og_mac=platform_dict['macos'],
-                   og_plat_other=platform_dict['other'])
+        counter_sql = """
+				UPDATE web_url 
+				SET COUNTER = COUNTER + {og_counter} , CHROME = CHROME + {og_chrome} , FIREFOX = FIREFOX+{og_firefox} ,
+				SAFARI = SAFARI+{og_safari} , OTHER_BROWSER =OTHER_BROWSER+ {og_oth_brow} , ANDROID = ANDROID +{og_andr} ,
+				IOS = IOS +{og_ios}, WINDOWS = WINDOWS+{og_windows} , LINUX = LINUX+{og_linux}  ,
+				MAC =MAC+ {og_mac} , OTHER_PLATFORM =OTHER_PLATFORM+ {og_plat_other} 
+				WHERE S_URL = %s;""".format(og_counter=counter, og_chrome=browser_dict['chrome'],
+                                            og_firefox=browser_dict['firefox'], og_safari=browser_dict['safari'],
+                                            og_oth_brow=browser_dict['other'], og_andr=platform_dict['android'],
+                                            og_ios=platform_dict['iphone'], og_windows=platform_dict['windows'],
+                                            og_linux=platform_dict['linux'], og_mac=platform_dict['macos'],
+                                            og_plat_other=platform_dict['other'])
         res_update = cursor.execute(counter_sql, (short_url,))
         res_update = cursor.execute(log_sql, (short_url, request.remote_addr))
         conn.commit()
@@ -154,13 +174,33 @@ def reroute(short_url):
         return redirect(new_url)
 
     except Exception as e:
+        logger.error(e)
         e = "Something went wrong.Please try again."
+
+        access = False
+        if not config.is_secure:
+            access = True
+        elif 'Auth' in request.headers:
+            if request.headers['Auth'] == config.SECRET_KEY:
+                access = True
+        if not access:
+            return redirect('http://basalam.com')
+
         return render_template('404.html'), 404
 
 
 # Search results
 @app.route('/search', methods=['GET', 'POST'])
 def search():
+    access = False
+    if not config.is_secure:
+        access = True
+    elif 'Auth' in request.headers:
+        if request.headers['Auth'] == config.SECRET_KEY:
+            access = True
+    if not access:
+        return redirect('http://basalam.com')
+
     s_tag = request.form.get('search_url')
     if s_tag == "":
         return render_template('index.html', error="Please enter a search term")
@@ -178,7 +218,7 @@ def search():
 @app.after_request
 def after_request(response):
     timestamp = strftime('[%Y-%b-%d %H:%M]')
-    logger.error('%s %s %s %s %s %s', timestamp, request.remote_addr, \
+    logger.error('%s %s %s %s %s %s', timestamp, request.remote_addr,
                  request.method, request.scheme, request.full_path, response.status)
     return response
 
