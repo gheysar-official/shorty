@@ -1,6 +1,6 @@
 #  :link: Shorty
 
-> A self-hosted URL shortening service built using Flask & Mysql. 
+> A self-hosted URL shortening service built using Flask & Postgres. 
 
 ![Demo image of Shorty](./desc/hero_final.gif)
 
@@ -26,40 +26,33 @@ python ./app.py
 
 ## Prerequisites
 
-This project requires Flask and MySQL . 
-And MySQLdb python module for connection.
+This project requires Flask and Postgresql . 
+And psycopg2 python module for connection.
 You can install it using the following commands . 
 
 ```
 pip install flask
 
 ```
-For mysql as backend
+For Postgres as backend
 
 ```
-sudo apt install mysql-server
+sudo apt update
 
-sudo apt-get install libmysqlclient-dev
+sudo apt install postgresql postgresql-contrib
 
-pip install MySQL-python
+pip install psycopg2-binary
 ```
 
-Now run the following command to create the MySQL table 
+Now run the following command to create the Postgres table 
 
 ```
 python ./create_table.py
 ```
 
-Configure the MySQL database credentials in `config.py`
-Set the host , user , password and database name for MySQL connection.
+Configure the Postgres database credentials in `config.py`
+Set the host , user , password and database name for Postgres connection.
 
-Also under MySQL shell set 
-
-```
-set autocommit = 0
-```
-
-This takes care of the concurrency issue.
 
 ## RESTful API
 
