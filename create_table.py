@@ -1,7 +1,7 @@
 # Script to build mysql table
+import psycopg2
 
 import config
-import MySQLdb
 from sql_table import mysql_table
 
 '''
@@ -21,7 +21,8 @@ passwrd = config.passwrd
 db = config.db
 
 create_table = mysql_table
-conn = MySQLdb.connect(host , user , passwrd, db)
+conn = psycopg2.connect(host=host, user=user, password=passwrd, database=db)
+
 cursor = conn.cursor()
 cursor.execute(create_table)
 
