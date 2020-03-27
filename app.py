@@ -46,9 +46,10 @@ db = config.db
 
 @app.route('/analytics/<short_url>')
 def analytics(short_url):
-    info_fetch, counter_fetch, browser_fetch, platform_fetch = list_data(short_url)
+    info_fetch, counter_fetch, browser_fetch, platform_fetch, user_count = list_data(short_url)
+    user_count = user_count if user_count else [0, 0]
     return render_template("data.html", host=shorty_host, info=info_fetch, counter=counter_fetch, \
-                           browser=browser_fetch, platform=platform_fetch)
+                           browser=browser_fetch, platform=platform_fetch, users=user_count)
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -134,7 +135,7 @@ def reroute(short_url):
         new_url = cursor.fetchone()[0]
         print(new_url)
         # Update Counters
-
+        log_sql = 'insert into web_url_log(s_url, user_ip) values (%s, %s)'
         counter_sql = "\
 				UPDATE {tn} SET COUNTER = COUNTER + {og_counter} , CHROME = CHROME + {og_chrome} , FIREFOX = FIREFOX+{og_firefox} ,\
 				SAFARI = SAFARI+{og_safari} , OTHER_BROWSER =OTHER_BROWSER+ {og_oth_brow} , ANDROID = ANDROID +{og_andr} , IOS = IOS +{og_ios},\
@@ -146,6 +147,7 @@ def reroute(short_url):
                    og_windows=platform_dict['windows'], og_linux=platform_dict['linux'], og_mac=platform_dict['macos'],
                    og_plat_other=platform_dict['other'])
         res_update = cursor.execute(counter_sql, (short_url,))
+        res_update = cursor.execute(log_sql, (short_url, request.remote_addr))
         conn.commit()
         conn.close()
 
